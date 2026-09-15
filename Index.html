@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Flota y Mantenimiento</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        h1, h2, h3 {
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .vehicle-card, .maintenance-card {
+            background: #f9f9f9;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            margin-top: 5px;
+        }
+        .delete-btn:hover {
+            background-color: #a71d2a;
+        }
+        .manage-btn {
+            background-color: #28a745;
+        }
+        .manage-btn:hover {
+            background-color: #1e7e34;
+        }
+        #maintenance-section {
+            display: none;
+            margin-top: 20px;
+            border-top: 2px solid #eee;
+            padding-top: 20px;
+        }
+        .back-btn {
+            background-color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="main-container">
+    <h1>Gestión de Flota</h1>
+    
+    <!-- Sección de Vehículos -->
+    <div id="vehicles-section">
+        <h2>Agregar Vehículo</h2>
+        <input type="text" id="veh-name" placeholder="Vehículo (ej. Gol 1.6, Berlingo)">
+        <input type="text" id="veh-patente" placeholder="Patente">
+        <button onclick="addVehicle()">Guardar Vehículo</button>
+
+        <h2>Mi Flota</h2>
+        <div id="vehicles-list"></div>
+    </div>
+
+    <!-- Sección de Mantenimiento -->
+    <div id="maintenance-section">
+        <button class="back-btn" onclick="showVehicles()">⬅ Volver a la flota</button>
+        <h2 id="current-vehicle-title">Mantenimiento</h2>
+        
+        <h3>Agregar Tarea</h3>
+        <input type="text" id="maint-desc" placeholder="Descripción libre (ej. Frenos, Correa, Aceite)">
+        <input type="number" id="maint-km" placeholder="Avisar a los (Kilómetros)">
+        <label for="maint-date" style="font-size: 14px; color: #666; margin-top: 5px; display: block;">Fecha límite de cambio:</label>
+        <input type="date" id="maint-date">
+        <button onclick="addMaintenance()">Guardar Tarea</button>
+
+        <h3>Historial y Pendientes</h3>
+        <div id="maintenance-list"></div>
+    </div>
+</div>
+
+<script>
+    // Recuperar datos de la memoria del celular/navegador
+    let vehicles = JSON.parse(localStorage.getItem('flota_vehiculos')) || [];
+    let currentVehicleId = null;
+
+    function saveToLocalStorage() {
+        localStorage.setItem('flota_vehiculos', JSON.stringify(vehicles));
+    }
+
+    function renderVehicles() {
+        const list = document.getElementById('vehicles-list');
+        list.innerHTML = '';
+        if (vehicles.length === 0) {
+            list.innerHTML = '<p style="text-align:center; color:#777;">No hay vehículos registrados aún.</p>';
+            return;
+        }
+        vehicles.forEach(v => {
+            list.innerHTML += `
+                <div class="vehicle-card">
+                    <h3 style="margin-top:0;">${v.name}</h3>
+                    <p style="margin:5px 0;"><strong>Patente:</strong> ${v.patente}</p>
+                    <button class="manage-btn" onclick="manageVehicle(${v.id})">Ver Mantenimiento</button>
+                    <button class="delete-btn" onclick="deleteVehicle(${v.id})">Eliminar Vehículo</button>
+                </div>
+            `;
+        });
+    }
+
+    function addVehicle() {
+        const name = document.getElementById('veh-name').value;
+        const patente = document.getElementById('veh-patente').value;
+        if (name === '' || patente === '') {
+            alert('Por favor completa el nombre y la patente.');
+            return;
+        }
+        
+        const newVehicle = {
+            id: Date.now(),
+            name: name,
+            patente: patente,
+            maintenance: []
+        };
+        
+        vehicles.push(newVehicle);
+        saveToLocalStorage();
+        renderVehicles();
+        
+        document.getElementById('veh-name').value = '';
+        document.getElementById('veh-patente').value = '';
+    }
+
+    function deleteVehicle(id) {
+        if(confirm('¿Seguro que querés eliminar este vehículo y todo su historial de cambios?')) {
+            vehicles = vehicles.filter(v => v.id !== id);
+            saveToLocalStorage();
+            renderVehicles();
+        }
+    }
+
+    function manageVehicle(id) {
+        currentVehicleId = id;
+        const vehicle = vehicles.find(v => v.id === id);
+        document.getElementById('current-vehicle-title').innerText = vehicle.name;
+        
+        document.getElementById('vehicles-section').style.display = 'none';
+        document.getElementById('maintenance-section').style.display = 'block';
+        
+        renderMaintenance();
+    }
+
+    function showVehicles() {
+        currentVehicleId = null;
+        document.getElementById('vehicles-section').style.display = 'block';
+        document.getElementById('maintenance-section').style.display = 'none';
+        renderVehicles();
+    }
+
+    function renderMaintenance() {
+        const list = document.getElementById('maintenance-list');
+        list.innerHTML = '';
+        const vehicle = vehicles.find(v => v.id === currentVehicleId);
+        
+        if (vehicle.maintenance.length === 0) {
+            list.innerHTML = '<p style="text-align:center; color:#777;">No hay tareas registradas.</p>';
+            return;
+        }
+
+        vehicle.maintenance.forEach(m => {
+            list.innerHTML += `
+                <div class="maintenance-card">
+                    <h4 style="margin-top:0; color:#007bff;">${m.desc}</h4>
+                    <p style="margin:5px 0;"><strong>Próximo cambio a los:</strong> ${m.km ? m.km + ' km' : 'No definido'}</p>
+                    <p style="margin:5px 0;"><strong>Fecha límite:</strong> ${m.date ? m.date : 'No definida'}</p>
+                    <button class="delete-btn" onclick="deleteMaintenance(${m.id})">Eliminar Tarea</button>
+                </div>
+            `;
+        });
+    }
+
+    function addMaintenance() {
+        const desc = document.getElementById('maint-desc').value;
+        const km = document.getElementById('maint-km').value;
+        const date = document.getElementById('maint-date').value;
+        
+        if (desc === '') {
+            alert('La descripción de la tarea es obligatoria (ej. Cambio de pastillas de freno).');
+            return;
+        }
+
+        const vehicleIndex = vehicles.findIndex(v => v.id === currentVehicleId);
+        
+        const newTask = {
+            id: Date.now(),
+            desc: desc,
+            km: km,
+            date: date
+        };
+
+        vehicles[vehicleIndex].maintenance.push(newTask);
+        saveToLocalStorage();
+        renderMaintenance();
+
+        document.getElementById('maint-desc').value = '';
+        document.getElementById('maint-km').value = '';
+        document.getElementById('maint-date').value = '';
+    }
+
+    function deleteMaintenance(taskId) {
+        if(confirm('¿Seguro que querés eliminar esta tarea anotada?')) {
+            const vehicleIndex = vehicles.findIndex(v => v.id === currentVehicleId);
+            vehicles[vehicleIndex].maintenance = vehicles[vehicleIndex].maintenance.filter(m => m.id !== taskId);
+            saveToLocalStorage();
+            renderMaintenance();
+        }
+    }
+
+    // Arrancar la app cargando la lista de vehículos
+    renderVehicles();
+</script>
+
+</body>
+</html>
