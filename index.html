@@ -57,7 +57,6 @@
             border-radius: 4px;
         }
         
-        /* Color distinto para el historial para diferenciarlo de las tareas pendientes */
         .history-card {
             border-left: 5px solid #777; 
         }
@@ -124,7 +123,11 @@
         
         <h3>Anotar Tarea Pendiente</h3>
         <input type="text" id="maint-desc" placeholder="Ej. Cambio de Aceite, Frenos">
-        <input type="number" id="maint-km" placeholder="Avisar a los (Kilómetros)">
+        
+        <!-- NUEVOS CAMPOS DE KILOMETRAJE -->
+        <input type="number" id="maint-km-actual" placeholder="Kilometraje en que se hizo (Ej: 120000)">
+        <input type="number" id="maint-km" placeholder="Próximo cambio a los (Ej: 130000)">
+        
         <label style="font-size: 14px; color: #666;">Fecha límite (Opcional):</label>
         <input type="date" id="maint-date">
         <button onclick="window.addMaintenance()">Guardar Tarea</button>
@@ -154,7 +157,6 @@
 
 <!-- CONEXIÓN CON FIREBASE -->
 <script type="module">
-    // Importamos "get" para poder leer el reporte antes de moverlo al historial
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getDatabase, ref, set, push, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -219,7 +221,7 @@
         document.getElementById('current-vehicle-title').innerText = "Ficha de: " + name;
         window.showSection('maintenance-section');
         
-        // 1. Cargar tareas pendientes
+        // Cargar tareas pendientes
         onValue(ref(db, 'vehiculos/' + id + '/mantenimiento'), (snapshot) => {
             const list = document.getElementById('maintenance-list');
             list.innerHTML = '';
@@ -229,8 +231,9 @@
                     list.innerHTML += `
                         <div class="maintenance-card">
                             <h4 style="margin-top:0; color:#cc0000;">${m.desc}</h4>
-                            <p style="margin:5px 0;"><strong>Cambio a los:</strong> ${m.km ? m.km + ' km' : 'N/A'}</p>
-                            <p style="margin:5px 0;"><strong>Fecha:</strong> ${m.date ? m.date : 'N/A'}</p>
+                            <p style="margin:5px 0;"><strong>Hecho a los:</strong> ${m.kmActual ? m.kmActual + ' km' : 'No anotado'}</p>
+                            <p style="margin:5px 0;"><strong>Próximo cambio a los:</strong> ${m.km ? m.km + ' km' : 'No anotado'}</p>
+                            <p style="margin:5px 0;"><strong>Fecha límite:</strong> ${m.date ? m.date : 'Sin fecha'}</p>
                             <button class="delete-btn" onclick="window.borrarMantenimiento('${id}', '${childSnapshot.key}')">Eliminar Tarea</button>
                         </div>
                     `;
@@ -240,12 +243,11 @@
             }
         });
 
-        // 2. Cargar historial de reportes resueltos
+        // Cargar historial de reportes resueltos
         onValue(ref(db, 'vehiculos/' + id + '/historial'), (snapshot) => {
             const list = document.getElementById('historial-list');
             list.innerHTML = '';
             if (snapshot.exists()) {
-                // Para mostrarlos del más nuevo al más viejo
                 let historialHTML = '';
                 snapshot.forEach((childSnapshot) => {
                     const h = childSnapshot.val();
@@ -266,14 +268,19 @@
 
     window.addMaintenance = function() {
         const desc = document.getElementById('maint-desc').value;
+        const kmActual = document.getElementById('maint-km-actual').value;
         const km = document.getElementById('maint-km').value;
         const date = document.getElementById('maint-date').value;
+        
         if (!desc) return alert('La descripción es obligatoria.');
 
         const maintRef = push(ref(db, 'vehiculos/' + currentVehicleId + '/mantenimiento'));
-        set(maintRef, { desc, km, date });
+        // Ahora guardamos también el kmActual en Firebase
+        set(maintRef, { desc, kmActual, km, date });
 
+        // Limpiar todos los campos después de guardar
         document.getElementById('maint-desc').value = '';
+        document.getElementById('maint-km-actual').value = '';
         document.getElementById('maint-km').value = '';
         document.getElementById('maint-date').value = '';
     };
@@ -289,7 +296,6 @@
         const select = document.getElementById('chofer-vehiculo');
         select.innerHTML = '<option value="">Seleccioná el vehículo...</option>';
         vehiculosGlobal.forEach(v => {
-            // Ahora guardamos el ID del vehículo en el value para poder vincularlo al historial luego
             select.innerHTML += `<option value="${v.id}">${v.name} - ${v.patente}</option>`;
         });
     }
@@ -297,17 +303,16 @@
     window.enviarReporte = function() {
         const nombre = document.getElementById('chofer-nombre').value;
         const selectVehiculo = document.getElementById('chofer-vehiculo');
-        const vehId = selectVehiculo.value; // ID real del auto
+        const vehId = selectVehiculo.value; 
         const novedad = document.getElementById('chofer-novedad').value;
         
         if(!nombre || !vehId || !novedad) return alert("Por favor completá todos los datos para avisarle al dueño.");
 
-        const vehName = selectVehiculo.options[selectVehiculo.selectedIndex].text; // Nombre visible (Ej: Gol - AAA111)
+        const vehName = selectVehiculo.options[selectVehiculo.selectedIndex].text; 
 
         const reportRef = push(ref(db, 'reportes'));
         const fecha = new Date().toLocaleString();
         
-        // Guardamos el vehId para saber a qué historial mandarlo después
         set(reportRef, { nombre, vehId, vehiculo: vehName, novedad, fecha }).then(() => {
             alert("¡Novedad enviada exitosamente!");
             document.getElementById('chofer-novedad').value = '';
@@ -315,29 +320,25 @@
         });
     };
 
-    // --- NUEVO SISTEMA DE ARCHIVADO ---
+    // --- SISTEMA DE ARCHIVADO ---
     window.resolverReporte = function(reportId) {
         if(confirm("¿Marcar este reporte como resuelto y guardarlo en el historial del vehículo?")) {
             const reportRef = ref(db, 'reportes/' + reportId);
             
-            // Primero leemos los datos del reporte
             get(reportRef).then((snapshot) => {
                 if (snapshot.exists()) {
                     const r = snapshot.val();
                     
                     if(r.vehId) {
-                        // Si tiene el ID del vehículo, lo copiamos a su historial
                         const histRef = push(ref(db, 'vehiculos/' + r.vehId + '/historial'));
                         set(histRef, { 
                             nombre: r.nombre, 
                             fecha: r.fecha, 
                             novedad: r.novedad 
                         }).then(() => {
-                            // Una vez copiado al historial, lo borramos de la lista principal
                             remove(reportRef);
                         });
                     } else {
-                        // Por si tenés reportes viejos guardados sin ID, solo los borra
                         remove(reportRef);
                     }
                 }
