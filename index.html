@@ -9,48 +9,64 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 15px;
-            background-color: #f4f4f9;
+            background-color: #ffffff; 
             color: #333;
         }
-        h1, h2, h3 { text-align: center; color: #222; }
+        .header-logo {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        h1, h2, h3 { text-align: center; color: #cc0000; } 
         .container {
             max-width: 600px;
             margin: auto;
             background: #fff;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 2px solid #cc0000; 
+            box-shadow: 0 4px 6px rgba(204,0,0,0.15);
         }
         input, button, select, textarea {
             width: 100%;
             padding: 12px;
             margin: 8px 0;
             border-radius: 5px;
-            border: 1px solid #ccc;
+            border: 1px solid #cc0000; 
             box-sizing: border-box;
             font-size: 16px;
         }
         button {
-            background-color: #007bff;
+            background-color: #cc0000; 
             color: white;
             border: none;
             cursor: pointer;
             font-weight: bold;
         }
-        button:hover { background-color: #0056b3; }
-        .btn-dueno { background-color: #28a745; }
-        .btn-chofer { background-color: #ffc107; color: #000; }
+        button:hover { background-color: #990000; }
+        
+        .btn-dueno { background-color: #cc0000; }
+        .btn-chofer { background-color: #ffffff; color: #cc0000; border: 2px solid #cc0000; }
+        .btn-chofer:hover { background-color: #ffe6e6; }
+        
         .vehicle-card, .maintenance-card, .report-card {
-            background: #f9f9f9;
-            border-left: 4px solid #007bff;
+            background: #ffffff;
+            border: 1px solid #e6e6e6;
+            border-left: 5px solid #cc0000; 
             padding: 15px;
             margin-bottom: 15px;
             border-radius: 4px;
         }
-        .report-card { border-left-color: #dc3545; }
-        .delete-btn { background-color: #dc3545; margin-top: 5px; }
-        .manage-btn { background-color: #17a2b8; margin-top: 5px;}
-        .back-btn { background-color: #6c757d; }
+        
+        /* Color distinto para el historial para diferenciarlo de las tareas pendientes */
+        .history-card {
+            border-left: 5px solid #777; 
+        }
+
+        .delete-btn { background-color: #555; margin-top: 5px; } 
+        .delete-btn:hover { background-color: #333; }
+        .manage-btn { background-color: #cc0000; margin-top: 5px;}
+        .back-btn { background-color: #777; color: white; border: none; }
+        
         .section { display: none; }
         .active { display: block; }
     </style>
@@ -58,6 +74,15 @@
 <body>
 
 <div class="container">
+    
+    <!-- LOGO DE LA AGENCIA -->
+    <div class="header-logo">
+        <svg viewBox="0 0 100 100" width="90" height="90" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="50,5 61,39 98,39 68,59 79,95 50,75 21,95 32,59 2,39 39,39" fill="#cc0000" stroke="#cc0000" stroke-width="2"/>
+            <text x="50" y="68" font-size="42" font-family="Arial" font-weight="bold" fill="white" text-anchor="middle">5</text>
+        </svg>
+    </div>
+    
     <h1>Flota 5 Estrellas</h1>
     
     <!-- PANTALLA PRINCIPAL: LOGIN -->
@@ -70,7 +95,7 @@
     <!-- PANTALLA LOGIN DUEÑO -->
     <div id="dueno-login-section" class="section">
         <h2>Acceso Administrativo</h2>
-        <input type="password" id="admin-pass" placeholder="Contraseña (1234)">
+        <input type="password" id="admin-pass" placeholder="Contraseña">
         <button class="btn-dueno" onclick="window.loginDueno()">Entrar</button>
         <button class="back-btn" onclick="window.showSection('login-section')">Volver</button>
     </div>
@@ -92,20 +117,25 @@
         <div id="vehicles-list">Cargando vehículos...</div>
     </div>
 
-    <!-- PANTALLA DUEÑO: MANTENIMIENTO -->
+    <!-- PANTALLA DUEÑO: MANTENIMIENTO E HISTORIAL -->
     <div id="maintenance-section" class="section">
         <button class="back-btn" onclick="window.showSection('dueno-panel-section')">⬅ Volver al Panel</button>
         <h2 id="current-vehicle-title">Mantenimiento</h2>
         
-        <h3>Anotar Tarea</h3>
+        <h3>Anotar Tarea Pendiente</h3>
         <input type="text" id="maint-desc" placeholder="Ej. Cambio de Aceite, Frenos">
         <input type="number" id="maint-km" placeholder="Avisar a los (Kilómetros)">
         <label style="font-size: 14px; color: #666;">Fecha límite (Opcional):</label>
         <input type="date" id="maint-date">
         <button onclick="window.addMaintenance()">Guardar Tarea</button>
 
-        <h3>Historial</h3>
+        <h3>Tareas Pendientes</h3>
         <div id="maintenance-list"></div>
+
+        <hr style="border: 1px solid #eee; margin: 30px 0;">
+
+        <h3>Historial de Reportes Resueltos</h3>
+        <div id="historial-list"></div>
     </div>
 
     <!-- PANTALLA CHOFER: REPORTE -->
@@ -117,17 +147,17 @@
             <option value="">Seleccioná el vehículo que manejás...</option>
         </select>
         <textarea id="chofer-novedad" rows="4" placeholder="Ej: Se quemó la luz de giro derecha, ruido en el tren delantero..."></textarea>
-        <button class="btn-chofer" onclick="window.enviarReporte()">Enviar Reporte al Dueño</button>
+        <button class="btn-dueno" onclick="window.enviarReporte()">Enviar Reporte al Dueño</button>
     </div>
 
 </div>
 
 <!-- CONEXIÓN CON FIREBASE -->
 <script type="module">
+    // Importamos "get" para poder leer el reporte antes de moverlo al historial
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { getDatabase, ref, set, push, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-    // Tu configuración exacta
     const firebaseConfig = {
       apiKey: "AIzaSyDPryrds2qJSp6FKu3FDSZgswXB-Ur9Zq8",
       authDomain: "flota-5-estrellas.firebaseapp.com",
@@ -138,14 +168,12 @@
       appId: "1:784109809805:web:33eb3d1de88c9fdf5272c4"
     };
 
-    // Inicializar Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
     let currentVehicleId = null;
-    let vehiculosGlobal = []; // Para tenerlos a mano al mostrar
+    let vehiculosGlobal = [];
 
-    // --- FUNCIONES DE NAVEGACIÓN ---
     window.showSection = function(sectionId) {
         document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
         document.getElementById(sectionId).classList.add('active');
@@ -159,7 +187,7 @@
 
     window.loginDueno = function() {
         const pass = document.getElementById('admin-pass').value;
-        if(pass === "1234") { // Contraseña simple provisoria
+        if(pass === "5estrellas") { 
             document.getElementById('admin-pass').value = '';
             window.showSection('dueno-panel-section');
         } else {
@@ -167,7 +195,7 @@
         }
     };
 
-    // --- FUNCIONES DEL DUEÑO (VEHÍCULOS Y MANTENIMIENTO) ---
+    // --- GESTIÓN DE VEHÍCULOS ---
     window.addVehicle = function() {
         const name = document.getElementById('veh-name').value;
         const patente = document.getElementById('veh-patente').value;
@@ -181,17 +209,17 @@
     };
 
     window.eliminarVehiculo = function(id) {
-        if(confirm("¿Borrar vehículo y su mantenimiento?")) {
+        if(confirm("¿Borrar vehículo y todo su historial de mantenimiento?")) {
             remove(ref(db, 'vehiculos/' + id));
         }
     };
 
     window.gestionarMantenimiento = function(id, name) {
         currentVehicleId = id;
-        document.getElementById('current-vehicle-title').innerText = "Mantenimiento: " + name;
+        document.getElementById('current-vehicle-title').innerText = "Ficha de: " + name;
         window.showSection('maintenance-section');
         
-        // Escuchar mantenimiento de este auto
+        // 1. Cargar tareas pendientes
         onValue(ref(db, 'vehiculos/' + id + '/mantenimiento'), (snapshot) => {
             const list = document.getElementById('maintenance-list');
             list.innerHTML = '';
@@ -200,7 +228,7 @@
                     const m = childSnapshot.val();
                     list.innerHTML += `
                         <div class="maintenance-card">
-                            <h4 style="margin-top:0; color:#007bff;">${m.desc}</h4>
+                            <h4 style="margin-top:0; color:#cc0000;">${m.desc}</h4>
                             <p style="margin:5px 0;"><strong>Cambio a los:</strong> ${m.km ? m.km + ' km' : 'N/A'}</p>
                             <p style="margin:5px 0;"><strong>Fecha:</strong> ${m.date ? m.date : 'N/A'}</p>
                             <button class="delete-btn" onclick="window.borrarMantenimiento('${id}', '${childSnapshot.key}')">Eliminar Tarea</button>
@@ -208,7 +236,30 @@
                     `;
                 });
             } else {
-                list.innerHTML = '<p>No hay tareas registradas.</p>';
+                list.innerHTML = '<p style="color:#777;">No hay tareas pendientes.</p>';
+            }
+        });
+
+        // 2. Cargar historial de reportes resueltos
+        onValue(ref(db, 'vehiculos/' + id + '/historial'), (snapshot) => {
+            const list = document.getElementById('historial-list');
+            list.innerHTML = '';
+            if (snapshot.exists()) {
+                // Para mostrarlos del más nuevo al más viejo
+                let historialHTML = '';
+                snapshot.forEach((childSnapshot) => {
+                    const h = childSnapshot.val();
+                    historialHTML = `
+                        <div class="maintenance-card history-card">
+                            <p style="margin:5px 0; font-size: 14px; color: #555;">📅 ${h.fecha}</p>
+                            <p style="margin:5px 0;"><strong>Reportó:</strong> ${h.nombre}</p>
+                            <p style="margin:5px 0;"><strong>Novedad solucionada:</strong> ${h.novedad}</p>
+                        </div>
+                    ` + historialHTML;
+                });
+                list.innerHTML = historialHTML;
+            } else {
+                list.innerHTML = '<p style="color:#777;">No hay reportes previos en este vehículo.</p>';
             }
         });
     };
@@ -233,40 +284,68 @@
         }
     };
 
-    // --- FUNCIONES DEL CHOFER (REPORTES) ---
+    // --- FUNCIONES DEL CHOFER ---
     function actualizarSelectChofer() {
         const select = document.getElementById('chofer-vehiculo');
         select.innerHTML = '<option value="">Seleccioná el vehículo...</option>';
         vehiculosGlobal.forEach(v => {
-            select.innerHTML += `<option value="${v.name} (${v.patente})">${v.name} - ${v.patente}</option>`;
+            // Ahora guardamos el ID del vehículo en el value para poder vincularlo al historial luego
+            select.innerHTML += `<option value="${v.id}">${v.name} - ${v.patente}</option>`;
         });
     }
 
     window.enviarReporte = function() {
         const nombre = document.getElementById('chofer-nombre').value;
-        const vehiculo = document.getElementById('chofer-vehiculo').value;
+        const selectVehiculo = document.getElementById('chofer-vehiculo');
+        const vehId = selectVehiculo.value; // ID real del auto
         const novedad = document.getElementById('chofer-novedad').value;
         
-        if(!nombre || !vehiculo || !novedad) return alert("Por favor completá todos los datos para avisarle al dueño.");
+        if(!nombre || !vehId || !novedad) return alert("Por favor completá todos los datos para avisarle al dueño.");
+
+        const vehName = selectVehiculo.options[selectVehiculo.selectedIndex].text; // Nombre visible (Ej: Gol - AAA111)
 
         const reportRef = push(ref(db, 'reportes'));
         const fecha = new Date().toLocaleString();
         
-        set(reportRef, { nombre, vehiculo, novedad, fecha }).then(() => {
+        // Guardamos el vehId para saber a qué historial mandarlo después
+        set(reportRef, { nombre, vehId, vehiculo: vehName, novedad, fecha }).then(() => {
             alert("¡Novedad enviada exitosamente!");
             document.getElementById('chofer-novedad').value = '';
             window.showSection('login-section');
         });
     };
 
-    window.borrarReporte = function(id) {
-        if(confirm("¿Marcar este reporte como leído/resuelto?")) {
-            remove(ref(db, 'reportes/' + id));
+    // --- NUEVO SISTEMA DE ARCHIVADO ---
+    window.resolverReporte = function(reportId) {
+        if(confirm("¿Marcar este reporte como resuelto y guardarlo en el historial del vehículo?")) {
+            const reportRef = ref(db, 'reportes/' + reportId);
+            
+            // Primero leemos los datos del reporte
+            get(reportRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const r = snapshot.val();
+                    
+                    if(r.vehId) {
+                        // Si tiene el ID del vehículo, lo copiamos a su historial
+                        const histRef = push(ref(db, 'vehiculos/' + r.vehId + '/historial'));
+                        set(histRef, { 
+                            nombre: r.nombre, 
+                            fecha: r.fecha, 
+                            novedad: r.novedad 
+                        }).then(() => {
+                            // Una vez copiado al historial, lo borramos de la lista principal
+                            remove(reportRef);
+                        });
+                    } else {
+                        // Por si tenés reportes viejos guardados sin ID, solo los borra
+                        remove(reportRef);
+                    }
+                }
+            });
         }
     };
 
     // --- ESCUCHADORES EN TIEMPO REAL ---
-    // Escuchar vehículos
     onValue(ref(db, 'vehiculos'), (snapshot) => {
         const list = document.getElementById('vehicles-list');
         list.innerHTML = '';
@@ -280,8 +359,8 @@
                     <div class="vehicle-card">
                         <h3 style="margin-top:0;">${v.name}</h3>
                         <p style="margin:5px 0;"><strong>Patente:</strong> ${v.patente}</p>
-                        <button class="manage-btn" onclick="window.gestionarMantenimiento('${id}', '${v.name}')">Ver Mantenimiento</button>
-                        <button class="delete-btn" onclick="window.eliminarVehiculo('${id}')">Eliminar</button>
+                        <button class="manage-btn" onclick="window.gestionarMantenimiento('${id}', '${v.name}')">Ficha e Historial</button>
+                        <button class="delete-btn" onclick="window.eliminarVehiculo('${id}')">Eliminar Auto</button>
                     </div>
                 `;
             });
@@ -293,30 +372,30 @@
         }
     });
 
-    // Escuchar reportes de choferes
     onValue(ref(db, 'reportes'), (snapshot) => {
         const list = document.getElementById('reports-list');
         list.innerHTML = '';
         if (snapshot.exists()) {
-            let hayReportes = false;
+            let reportesHTML = '';
             snapshot.forEach((childSnapshot) => {
-                hayReportes = true;
                 const r = childSnapshot.val();
-                list.innerHTML = `
+                reportesHTML = `
                     <div class="report-card">
-                        <strong style="color: #dc3545;">🚨 Alerta de ${r.nombre}</strong>
+                        <strong style="color: #cc0000;">🚨 Alerta de ${r.nombre}</strong>
                         <p style="margin: 5px 0; font-size: 14px; color: #555;">${r.fecha}</p>
                         <p style="margin: 5px 0;"><strong>Auto:</strong> ${r.vehiculo}</p>
                         <p style="margin: 5px 0;"><strong>Novedad:</strong> ${r.novedad}</p>
-                        <button class="manage-btn" onclick="window.borrarReporte('${childSnapshot.key}')">Marcar Resuelto</button>
+                        <button class="manage-btn" onclick="window.resolverReporte('${childSnapshot.key}')">Marcar Resuelto</button>
                     </div>
-                ` + list.innerHTML; // Agrega los nuevos arriba
+                ` + reportesHTML; 
             });
+            list.innerHTML = reportesHTML;
         } else {
-            list.innerHTML = '<p style="color: #28a745;">✅ No hay novedades de los choferes.</p>';
+            list.innerHTML = '<p style="color: #555;">✅ No hay novedades de los choferes pendientes.</p>';
         }
     });
 </script>
 
 </body>
 </html>
+
