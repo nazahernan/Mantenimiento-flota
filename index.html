@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Flota y Mantenimiento</title>
+    <title>Flota 5 Estrellas</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,9 +12,7 @@
             background-color: #f4f4f9;
             color: #333;
         }
-        h1, h2, h3 {
-            text-align: center;
-        }
+        h1, h2, h3 { text-align: center; color: #222; }
         .container {
             max-width: 600px;
             margin: auto;
@@ -23,7 +21,7 @@
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        input, button {
+        input, button, select, textarea {
             width: 100%;
             padding: 12px;
             margin: 8px 0;
@@ -39,211 +37,285 @@
             cursor: pointer;
             font-weight: bold;
         }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .vehicle-card, .maintenance-card {
+        button:hover { background-color: #0056b3; }
+        .btn-dueno { background-color: #28a745; }
+        .btn-chofer { background-color: #ffc107; color: #000; }
+        .vehicle-card, .maintenance-card, .report-card {
             background: #f9f9f9;
             border-left: 4px solid #007bff;
             padding: 15px;
             margin-bottom: 15px;
             border-radius: 4px;
         }
-        .delete-btn {
-            background-color: #dc3545;
-            margin-top: 5px;
-        }
-        .delete-btn:hover {
-            background-color: #a71d2a;
-        }
-        .manage-btn {
-            background-color: #28a745;
-        }
-        .manage-btn:hover {
-            background-color: #1e7e34;
-        }
-        #maintenance-section {
-            display: none;
-            margin-top: 20px;
-            border-top: 2px solid #eee;
-            padding-top: 20px;
-        }
-        .back-btn {
-            background-color: #6c757d;
-        }
+        .report-card { border-left-color: #dc3545; }
+        .delete-btn { background-color: #dc3545; margin-top: 5px; }
+        .manage-btn { background-color: #17a2b8; margin-top: 5px;}
+        .back-btn { background-color: #6c757d; }
+        .section { display: none; }
+        .active { display: block; }
     </style>
 </head>
 <body>
 
-<div class="container" id="main-container">
-    <h1>Gestión de Flota</h1>
+<div class="container">
+    <h1>Flota 5 Estrellas</h1>
     
-    <!-- Sección de Vehículos -->
-    <div id="vehicles-section">
-        <h2>Agregar Vehículo</h2>
+    <!-- PANTALLA PRINCIPAL: LOGIN -->
+    <div id="login-section" class="section active">
+        <h2>Ingreso al Sistema</h2>
+        <button class="btn-dueno" onclick="window.showDuenoLogin()">Ingresar como Dueño</button>
+        <button class="btn-chofer" onclick="window.showChoferLogin()">Ingresar como Chofer</button>
+    </div>
+
+    <!-- PANTALLA LOGIN DUEÑO -->
+    <div id="dueno-login-section" class="section">
+        <h2>Acceso Administrativo</h2>
+        <input type="password" id="admin-pass" placeholder="Contraseña (1234)">
+        <button class="btn-dueno" onclick="window.loginDueno()">Entrar</button>
+        <button class="back-btn" onclick="window.showSection('login-section')">Volver</button>
+    </div>
+
+    <!-- PANTALLA DUEÑO: PANEL PRINCIPAL -->
+    <div id="dueno-panel-section" class="section">
+        <button class="back-btn" onclick="window.showSection('login-section')">⬅ Cerrar Sesión</button>
+        <h2>Panel de Control</h2>
+        
+        <h3>Novedades de Choferes</h3>
+        <div id="reports-list">Cargando reportes...</div>
+
+        <h3>Agregar Vehículo a la Flota</h3>
         <input type="text" id="veh-name" placeholder="Vehículo (ej. Gol 1.6, Berlingo)">
         <input type="text" id="veh-patente" placeholder="Patente">
-        <button onclick="addVehicle()">Guardar Vehículo</button>
+        <button onclick="window.addVehicle()">Guardar Vehículo</button>
 
-        <h2>Mi Flota</h2>
-        <div id="vehicles-list"></div>
+        <h3>Mi Flota</h3>
+        <div id="vehicles-list">Cargando vehículos...</div>
     </div>
 
-    <!-- Sección de Mantenimiento -->
-    <div id="maintenance-section">
-        <button class="back-btn" onclick="showVehicles()">⬅ Volver a la flota</button>
+    <!-- PANTALLA DUEÑO: MANTENIMIENTO -->
+    <div id="maintenance-section" class="section">
+        <button class="back-btn" onclick="window.showSection('dueno-panel-section')">⬅ Volver al Panel</button>
         <h2 id="current-vehicle-title">Mantenimiento</h2>
         
-        <h3>Agregar Tarea</h3>
-        <input type="text" id="maint-desc" placeholder="Descripción libre (ej. Frenos, Correa, Aceite)">
+        <h3>Anotar Tarea</h3>
+        <input type="text" id="maint-desc" placeholder="Ej. Cambio de Aceite, Frenos">
         <input type="number" id="maint-km" placeholder="Avisar a los (Kilómetros)">
-        <label for="maint-date" style="font-size: 14px; color: #666; margin-top: 5px; display: block;">Fecha límite de cambio:</label>
+        <label style="font-size: 14px; color: #666;">Fecha límite (Opcional):</label>
         <input type="date" id="maint-date">
-        <button onclick="addMaintenance()">Guardar Tarea</button>
+        <button onclick="window.addMaintenance()">Guardar Tarea</button>
 
-        <h3>Historial y Pendientes</h3>
+        <h3>Historial</h3>
         <div id="maintenance-list"></div>
     </div>
+
+    <!-- PANTALLA CHOFER: REPORTE -->
+    <div id="chofer-section" class="section">
+        <button class="back-btn" onclick="window.showSection('login-section')">⬅ Volver</button>
+        <h2>Reporte de Novedades</h2>
+        <input type="text" id="chofer-nombre" placeholder="Tu Nombre">
+        <select id="chofer-vehiculo">
+            <option value="">Seleccioná el vehículo que manejás...</option>
+        </select>
+        <textarea id="chofer-novedad" rows="4" placeholder="Ej: Se quemó la luz de giro derecha, ruido en el tren delantero..."></textarea>
+        <button class="btn-chofer" onclick="window.enviarReporte()">Enviar Reporte al Dueño</button>
+    </div>
+
 </div>
 
-<script>
-    // Recuperar datos de la memoria del celular/navegador
-    let vehicles = JSON.parse(localStorage.getItem('flota_vehiculos')) || [];
+<!-- CONEXIÓN CON FIREBASE -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    // Tu configuración exacta
+    const firebaseConfig = {
+      apiKey: "AIzaSyDPryrds2qJSp6FKu3FDSZgswXB-Ur9Zq8",
+      authDomain: "flota-5-estrellas.firebaseapp.com",
+      databaseURL: "https://flota-5-estrellas-default-rtdb.firebaseio.com",
+      projectId: "flota-5-estrellas",
+      storageBucket: "flota-5-estrellas.firebasestorage.app",
+      messagingSenderId: "784109809805",
+      appId: "1:784109809805:web:33eb3d1de88c9fdf5272c4"
+    };
+
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
     let currentVehicleId = null;
+    let vehiculosGlobal = []; // Para tenerlos a mano al mostrar
 
-    function saveToLocalStorage() {
-        localStorage.setItem('flota_vehiculos', JSON.stringify(vehicles));
-    }
+    // --- FUNCIONES DE NAVEGACIÓN ---
+    window.showSection = function(sectionId) {
+        document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+        document.getElementById(sectionId).classList.add('active');
+    };
 
-    function renderVehicles() {
-        const list = document.getElementById('vehicles-list');
-        list.innerHTML = '';
-        if (vehicles.length === 0) {
-            list.innerHTML = '<p style="text-align:center; color:#777;">No hay vehículos registrados aún.</p>';
-            return;
+    window.showDuenoLogin = function() { window.showSection('dueno-login-section'); };
+    window.showChoferLogin = function() { 
+        window.showSection('chofer-section'); 
+        actualizarSelectChofer();
+    };
+
+    window.loginDueno = function() {
+        const pass = document.getElementById('admin-pass').value;
+        if(pass === "1234") { // Contraseña simple provisoria
+            document.getElementById('admin-pass').value = '';
+            window.showSection('dueno-panel-section');
+        } else {
+            alert("Contraseña incorrecta");
         }
-        vehicles.forEach(v => {
-            list.innerHTML += `
-                <div class="vehicle-card">
-                    <h3 style="margin-top:0;">${v.name}</h3>
-                    <p style="margin:5px 0;"><strong>Patente:</strong> ${v.patente}</p>
-                    <button class="manage-btn" onclick="manageVehicle(${v.id})">Ver Mantenimiento</button>
-                    <button class="delete-btn" onclick="deleteVehicle(${v.id})">Eliminar Vehículo</button>
-                </div>
-            `;
-        });
-    }
+    };
 
-    function addVehicle() {
+    // --- FUNCIONES DEL DUEÑO (VEHÍCULOS Y MANTENIMIENTO) ---
+    window.addVehicle = function() {
         const name = document.getElementById('veh-name').value;
         const patente = document.getElementById('veh-patente').value;
-        if (name === '' || patente === '') {
-            alert('Por favor completa el nombre y la patente.');
-            return;
-        }
+        if (!name || !patente) return alert('Completá nombre y patente.');
         
-        const newVehicle = {
-            id: Date.now(),
-            name: name,
-            patente: patente,
-            maintenance: []
-        };
-        
-        vehicles.push(newVehicle);
-        saveToLocalStorage();
-        renderVehicles();
+        const vehRef = push(ref(db, 'vehiculos'));
+        set(vehRef, { name: name, patente: patente });
         
         document.getElementById('veh-name').value = '';
         document.getElementById('veh-patente').value = '';
-    }
+    };
 
-    function deleteVehicle(id) {
-        if(confirm('¿Seguro que querés eliminar este vehículo y todo su historial de cambios?')) {
-            vehicles = vehicles.filter(v => v.id !== id);
-            saveToLocalStorage();
-            renderVehicles();
+    window.eliminarVehiculo = function(id) {
+        if(confirm("¿Borrar vehículo y su mantenimiento?")) {
+            remove(ref(db, 'vehiculos/' + id));
         }
-    }
+    };
 
-    function manageVehicle(id) {
+    window.gestionarMantenimiento = function(id, name) {
         currentVehicleId = id;
-        const vehicle = vehicles.find(v => v.id === id);
-        document.getElementById('current-vehicle-title').innerText = vehicle.name;
+        document.getElementById('current-vehicle-title').innerText = "Mantenimiento: " + name;
+        window.showSection('maintenance-section');
         
-        document.getElementById('vehicles-section').style.display = 'none';
-        document.getElementById('maintenance-section').style.display = 'block';
-        
-        renderMaintenance();
-    }
-
-    function showVehicles() {
-        currentVehicleId = null;
-        document.getElementById('vehicles-section').style.display = 'block';
-        document.getElementById('maintenance-section').style.display = 'none';
-        renderVehicles();
-    }
-
-    function renderMaintenance() {
-        const list = document.getElementById('maintenance-list');
-        list.innerHTML = '';
-        const vehicle = vehicles.find(v => v.id === currentVehicleId);
-        
-        if (vehicle.maintenance.length === 0) {
-            list.innerHTML = '<p style="text-align:center; color:#777;">No hay tareas registradas.</p>';
-            return;
-        }
-
-        vehicle.maintenance.forEach(m => {
-            list.innerHTML += `
-                <div class="maintenance-card">
-                    <h4 style="margin-top:0; color:#007bff;">${m.desc}</h4>
-                    <p style="margin:5px 0;"><strong>Próximo cambio a los:</strong> ${m.km ? m.km + ' km' : 'No definido'}</p>
-                    <p style="margin:5px 0;"><strong>Fecha límite:</strong> ${m.date ? m.date : 'No definida'}</p>
-                    <button class="delete-btn" onclick="deleteMaintenance(${m.id})">Eliminar Tarea</button>
-                </div>
-            `;
+        // Escuchar mantenimiento de este auto
+        onValue(ref(db, 'vehiculos/' + id + '/mantenimiento'), (snapshot) => {
+            const list = document.getElementById('maintenance-list');
+            list.innerHTML = '';
+            if (snapshot.exists()) {
+                snapshot.forEach((childSnapshot) => {
+                    const m = childSnapshot.val();
+                    list.innerHTML += `
+                        <div class="maintenance-card">
+                            <h4 style="margin-top:0; color:#007bff;">${m.desc}</h4>
+                            <p style="margin:5px 0;"><strong>Cambio a los:</strong> ${m.km ? m.km + ' km' : 'N/A'}</p>
+                            <p style="margin:5px 0;"><strong>Fecha:</strong> ${m.date ? m.date : 'N/A'}</p>
+                            <button class="delete-btn" onclick="window.borrarMantenimiento('${id}', '${childSnapshot.key}')">Eliminar Tarea</button>
+                        </div>
+                    `;
+                });
+            } else {
+                list.innerHTML = '<p>No hay tareas registradas.</p>';
+            }
         });
-    }
+    };
 
-    function addMaintenance() {
+    window.addMaintenance = function() {
         const desc = document.getElementById('maint-desc').value;
         const km = document.getElementById('maint-km').value;
         const date = document.getElementById('maint-date').value;
-        
-        if (desc === '') {
-            alert('La descripción de la tarea es obligatoria (ej. Cambio de pastillas de freno).');
-            return;
-        }
+        if (!desc) return alert('La descripción es obligatoria.');
 
-        const vehicleIndex = vehicles.findIndex(v => v.id === currentVehicleId);
-        
-        const newTask = {
-            id: Date.now(),
-            desc: desc,
-            km: km,
-            date: date
-        };
-
-        vehicles[vehicleIndex].maintenance.push(newTask);
-        saveToLocalStorage();
-        renderMaintenance();
+        const maintRef = push(ref(db, 'vehiculos/' + currentVehicleId + '/mantenimiento'));
+        set(maintRef, { desc, km, date });
 
         document.getElementById('maint-desc').value = '';
         document.getElementById('maint-km').value = '';
         document.getElementById('maint-date').value = '';
-    }
+    };
 
-    function deleteMaintenance(taskId) {
-        if(confirm('¿Seguro que querés eliminar esta tarea anotada?')) {
-            const vehicleIndex = vehicles.findIndex(v => v.id === currentVehicleId);
-            vehicles[vehicleIndex].maintenance = vehicles[vehicleIndex].maintenance.filter(m => m.id !== taskId);
-            saveToLocalStorage();
-            renderMaintenance();
+    window.borrarMantenimiento = function(vehId, maintId) {
+        if(confirm('¿Borrar tarea?')) {
+            remove(ref(db, 'vehiculos/' + vehId + '/mantenimiento/' + maintId));
         }
+    };
+
+    // --- FUNCIONES DEL CHOFER (REPORTES) ---
+    function actualizarSelectChofer() {
+        const select = document.getElementById('chofer-vehiculo');
+        select.innerHTML = '<option value="">Seleccioná el vehículo...</option>';
+        vehiculosGlobal.forEach(v => {
+            select.innerHTML += `<option value="${v.name} (${v.patente})">${v.name} - ${v.patente}</option>`;
+        });
     }
 
-    // Arrancar la app cargando la lista de vehículos
-    renderVehicles();
+    window.enviarReporte = function() {
+        const nombre = document.getElementById('chofer-nombre').value;
+        const vehiculo = document.getElementById('chofer-vehiculo').value;
+        const novedad = document.getElementById('chofer-novedad').value;
+        
+        if(!nombre || !vehiculo || !novedad) return alert("Por favor completá todos los datos para avisarle al dueño.");
+
+        const reportRef = push(ref(db, 'reportes'));
+        const fecha = new Date().toLocaleString();
+        
+        set(reportRef, { nombre, vehiculo, novedad, fecha }).then(() => {
+            alert("¡Novedad enviada exitosamente!");
+            document.getElementById('chofer-novedad').value = '';
+            window.showSection('login-section');
+        });
+    };
+
+    window.borrarReporte = function(id) {
+        if(confirm("¿Marcar este reporte como leído/resuelto?")) {
+            remove(ref(db, 'reportes/' + id));
+        }
+    };
+
+    // --- ESCUCHADORES EN TIEMPO REAL ---
+    // Escuchar vehículos
+    onValue(ref(db, 'vehiculos'), (snapshot) => {
+        const list = document.getElementById('vehicles-list');
+        list.innerHTML = '';
+        vehiculosGlobal = [];
+        if (snapshot.exists()) {
+            snapshot.forEach((childSnapshot) => {
+                const id = childSnapshot.key;
+                const v = childSnapshot.val();
+                vehiculosGlobal.push({id, ...v});
+                list.innerHTML += `
+                    <div class="vehicle-card">
+                        <h3 style="margin-top:0;">${v.name}</h3>
+                        <p style="margin:5px 0;"><strong>Patente:</strong> ${v.patente}</p>
+                        <button class="manage-btn" onclick="window.gestionarMantenimiento('${id}', '${v.name}')">Ver Mantenimiento</button>
+                        <button class="delete-btn" onclick="window.eliminarVehiculo('${id}')">Eliminar</button>
+                    </div>
+                `;
+            });
+        } else {
+            list.innerHTML = '<p>No hay vehículos registrados.</p>';
+        }
+        if(document.getElementById('chofer-section').classList.contains('active')) {
+            actualizarSelectChofer();
+        }
+    });
+
+    // Escuchar reportes de choferes
+    onValue(ref(db, 'reportes'), (snapshot) => {
+        const list = document.getElementById('reports-list');
+        list.innerHTML = '';
+        if (snapshot.exists()) {
+            let hayReportes = false;
+            snapshot.forEach((childSnapshot) => {
+                hayReportes = true;
+                const r = childSnapshot.val();
+                list.innerHTML = `
+                    <div class="report-card">
+                        <strong style="color: #dc3545;">🚨 Alerta de ${r.nombre}</strong>
+                        <p style="margin: 5px 0; font-size: 14px; color: #555;">${r.fecha}</p>
+                        <p style="margin: 5px 0;"><strong>Auto:</strong> ${r.vehiculo}</p>
+                        <p style="margin: 5px 0;"><strong>Novedad:</strong> ${r.novedad}</p>
+                        <button class="manage-btn" onclick="window.borrarReporte('${childSnapshot.key}')">Marcar Resuelto</button>
+                    </div>
+                ` + list.innerHTML; // Agrega los nuevos arriba
+            });
+        } else {
+            list.innerHTML = '<p style="color: #28a745;">✅ No hay novedades de los choferes.</p>';
+        }
+    });
 </script>
 
 </body>
