@@ -173,21 +173,18 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getDatabase, ref, set, push, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDPryrds2qJSp6FKu3FDSZgswXB-Ur9Zq8",
       authDomain: "flota-5-estrellas.firebaseapp.com",
       databaseURL: "https://flota-5-estrellas-default-rtdb.firebaseio.com",
       projectId: "flota-5-estrellas",
-      storageBucket: "flota-5-estrellas.firebasestorage.app",
       messagingSenderId: "784109809805",
       appId: "1:784109809805:web:33eb3d1de88c9fdf5272c4"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const storage = getStorage(app);
 
     let currentVehicleId = null;
     let vehiculosGlobal = [];
@@ -316,7 +313,7 @@
         });
     }
 
-    // MODIFICADO: Ahora es una función asíncrona para subir la foto a Storage
+    // MODIFICADO: Subida a ImgBB vía Fetch API
     window.enviarReporte = async function() {
         const nombre = document.getElementById('chofer-nombre').value;
         const selectVehiculo = document.getElementById('chofer-vehiculo');
@@ -330,30 +327,44 @@
         const fecha = new Date().toLocaleString();
         let fotoUrl = "";
 
-        // Cambiar el texto del botón y bloquearlo
         const btnEnviar = document.getElementById('btn-enviar-reporte');
         const btnTextoOriginal = btnEnviar.innerText;
         btnEnviar.innerText = "Subiendo y Enviando...";
         btnEnviar.disabled = true;
 
         try {
-            // Si el chofer subió una foto, primero la guardamos en Firebase Storage
+            // Si hay foto, la mandamos a ImgBB
             if (fotoInput.files.length > 0) {
                 const archivo = fotoInput.files[0];
-                const nombreArchivo = Date.now() + "_" + archivo.name;
-                const imgRef = storageRef(storage, 'reportes_fotos/' + nombreArchivo);
+                const formData = new FormData();
+                formData.append("image", archivo);
                 
-                await uploadBytes(imgRef, archivo);
-                fotoUrl = await getDownloadURL(imgRef);
+                // --- TU API KEY DE IMGBB INTEGRADA ---
+                const apiKey = "ed0673fde30f371ec0e5de88dcfa3f0e"; 
+                
+                const urlImgbb = `https://api.imgbb.com/1/upload?key=${apiKey}`;
+                
+                const response = await fetch(urlImgbb, {
+                    method: "POST",
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if(data.success) {
+                    fotoUrl = data.data.url; // Rescatamos el link directo a la imagen
+                } else {
+                    alert("No se pudo adjuntar la foto, pero se enviará el texto.");
+                }
             }
 
-            // Una vez subida la foto (o si no subió ninguna), guardamos los datos en Realtime Database
+            // Una vez subida la foto a ImgBB, guardamos los datos del reporte en tu Firebase Realtime Database
             const reportRef = push(ref(db, 'reportes'));
             await set(reportRef, { nombre, vehId, vehiculo: vehName, novedad, fecha, fotoUrl });
             
             alert("¡Novedad enviada exitosamente!");
             
-            // Limpiar formulario y volver al login
+            // Limpiar formulario y volver
             document.getElementById('chofer-novedad').value = '';
             document.getElementById('chofer-foto').value = '';
             window.showSection('login-section');
@@ -362,7 +373,6 @@
             console.error("Error subiendo el reporte:", error);
             alert("Hubo un error al enviar el reporte. Por favor, intentá de nuevo.");
         } finally {
-            // Restaurar el botón a la normalidad
             btnEnviar.innerText = btnTextoOriginal;
             btnEnviar.disabled = false;
         }
