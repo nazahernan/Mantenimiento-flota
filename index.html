@@ -313,7 +313,49 @@
         });
     }
 
-    // MODIFICADO: Subida a ImgBB vía Fetch API
+    // NUEVA FUNCIÓN: Comprime la imagen antes de subirla
+    function comprimirImagen(archivo) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(archivo);
+            reader.onload = event => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const max_width = 800;
+                    const max_height = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > max_width) {
+                            height = Math.round(height *= max_width / width);
+                            width = max_width;
+                        }
+                    } else {
+                        if (height > max_height) {
+                            width = Math.round(width *= max_height / height);
+                            height = max_height;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Comprime a JPEG con 70% de calidad
+                    canvas.toBlob((blob) => {
+                        resolve(blob);
+                    }, 'image/jpeg', 0.7);
+                };
+                img.onerror = error => reject(error);
+            };
+            reader.onerror = error => reject(error);
+        });
+    }
+
     window.enviarReporte = async function() {
         const nombre = document.getElementById('chofer-nombre').value;
         const selectVehiculo = document.getElementById('chofer-vehiculo');
@@ -329,19 +371,22 @@
 
         const btnEnviar = document.getElementById('btn-enviar-reporte');
         const btnTextoOriginal = btnEnviar.innerText;
-        btnEnviar.innerText = "Subiendo y Enviando...";
+        btnEnviar.innerText = "Comprimiendo y Enviando...";
         btnEnviar.disabled = true;
 
         try {
-            // Si hay foto, la mandamos a ImgBB
+            // Si hay foto, la comprimimos y la mandamos a ImgBB
             if (fotoInput.files.length > 0) {
                 const archivo = fotoInput.files[0];
+                
+                // Llamamos a la función para comprimir
+                const blobComprimido = await comprimirImagen(archivo);
+
                 const formData = new FormData();
-                formData.append("image", archivo);
+                // Pasamos el blob y le asignamos un nombre de archivo
+                formData.append("image", blobComprimido, "reporte.jpg");
                 
-                // --- TU API KEY DE IMGBB INTEGRADA ---
                 const apiKey = "ed0673fde30f371ec0e5de88dcfa3f0e"; 
-                
                 const urlImgbb = `https://api.imgbb.com/1/upload?key=${apiKey}`;
                 
                 const response = await fetch(urlImgbb, {
@@ -352,13 +397,13 @@
                 const data = await response.json();
                 
                 if(data.success) {
-                    fotoUrl = data.data.url; // Rescatamos el link directo a la imagen
+                    fotoUrl = data.data.url;
                 } else {
                     alert("No se pudo adjuntar la foto, pero se enviará el texto.");
                 }
             }
 
-            // Una vez subida la foto a ImgBB, guardamos los datos del reporte en tu Firebase Realtime Database
+            // Guardamos los datos en Firebase
             const reportRef = push(ref(db, 'reportes'));
             await set(reportRef, { nombre, vehId, vehiculo: vehName, novedad, fecha, fotoUrl });
             
