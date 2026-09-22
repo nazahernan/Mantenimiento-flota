@@ -40,6 +40,10 @@
             box-sizing: border-box;
             font-size: 16px;
         }
+        input[type="file"] {
+            background-color: #f9f9f9;
+            cursor: pointer;
+        }
         button {
             background-color: #cc0000; 
             color: white;
@@ -48,6 +52,7 @@
             font-weight: bold;
         }
         button:hover { background-color: #990000; }
+        button:disabled { background-color: #ff9999; cursor: not-allowed; }
         
         .btn-dueno { background-color: #cc0000; }
         .btn-chofer { background-color: #ffffff; color: #cc0000; border: 2px solid #cc0000; }
@@ -129,7 +134,7 @@
         <h3>Anotar Tarea Pendiente</h3>
         <input type="text" id="maint-desc" placeholder="Ej. Cambio de Aceite, Frenos">
         
-        <!-- NUEVOS CAMPOS DE KILOMETRAJE -->
+        <!-- CAMPOS DE KILOMETRAJE -->
         <input type="number" id="maint-km-actual" placeholder="Kilometraje en que se hizo (Ej: 120000)">
         <input type="number" id="maint-km" placeholder="Próximo cambio a los (Ej: 130000)">
         
@@ -155,7 +160,11 @@
             <option value="">Seleccioná el vehículo que manejás...</option>
         </select>
         <textarea id="chofer-novedad" rows="4" placeholder="Ej: Se quemó la luz de giro derecha, ruido en el tren delantero..."></textarea>
-        <button class="btn-dueno" onclick="window.enviarReporte()">Enviar Reporte al Dueño</button>
+        
+        <label style="font-size: 14px; color: #666; font-weight: bold;">Adjuntar foto de la novedad (Opcional):</label>
+        <input type="file" id="chofer-foto" accept="image/*">
+        
+        <button id="btn-enviar-reporte" class="btn-dueno" onclick="window.enviarReporte()">Enviar Reporte al Dueño</button>
     </div>
 
 </div>
@@ -164,6 +173,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getDatabase, ref, set, push, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDPryrds2qJSp6FKu3FDSZgswXB-Ur9Zq8",
@@ -177,6 +187,7 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const storage = getStorage(app);
 
     let currentVehicleId = null;
     let vehiculosGlobal = [];
@@ -256,11 +267,13 @@
                 let historialHTML = '';
                 snapshot.forEach((childSnapshot) => {
                     const h = childSnapshot.val();
+                    const fotoLink = h.fotoUrl ? `<a href="${h.fotoUrl}" target="_blank" style="color: #cc0000; font-weight: bold; display: inline-block; margin-top: 5px;">📷 Ver foto adjunta</a>` : '';
                     historialHTML = `
                         <div class="maintenance-card history-card">
                             <p style="margin:5px 0; font-size: 14px; color: #555;">📅 ${h.fecha}</p>
                             <p style="margin:5px 0;"><strong>Reportó:</strong> ${h.nombre}</p>
                             <p style="margin:5px 0;"><strong>Novedad solucionada:</strong> ${h.novedad}</p>
+                            ${fotoLink}
                         </div>
                     ` + historialHTML;
                 });
@@ -280,10 +293,8 @@
         if (!desc) return alert('La descripción es obligatoria.');
 
         const maintRef = push(ref(db, 'vehiculos/' + currentVehicleId + '/mantenimiento'));
-        // Ahora guardamos también el kmActual en Firebase
         set(maintRef, { desc, kmActual, km, date });
 
-        // Limpiar todos los campos después de guardar
         document.getElementById('maint-desc').value = '';
         document.getElementById('maint-km-actual').value = '';
         document.getElementById('maint-km').value = '';
@@ -305,24 +316,56 @@
         });
     }
 
-    window.enviarReporte = function() {
+    // MODIFICADO: Ahora es una función asíncrona para subir la foto a Storage
+    window.enviarReporte = async function() {
         const nombre = document.getElementById('chofer-nombre').value;
         const selectVehiculo = document.getElementById('chofer-vehiculo');
         const vehId = selectVehiculo.value; 
         const novedad = document.getElementById('chofer-novedad').value;
+        const fotoInput = document.getElementById('chofer-foto');
         
         if(!nombre || !vehId || !novedad) return alert("Por favor completá todos los datos para avisarle al dueño.");
 
         const vehName = selectVehiculo.options[selectVehiculo.selectedIndex].text; 
-
-        const reportRef = push(ref(db, 'reportes'));
         const fecha = new Date().toLocaleString();
-        
-        set(reportRef, { nombre, vehId, vehiculo: vehName, novedad, fecha }).then(() => {
+        let fotoUrl = "";
+
+        // Cambiar el texto del botón y bloquearlo
+        const btnEnviar = document.getElementById('btn-enviar-reporte');
+        const btnTextoOriginal = btnEnviar.innerText;
+        btnEnviar.innerText = "Subiendo y Enviando...";
+        btnEnviar.disabled = true;
+
+        try {
+            // Si el chofer subió una foto, primero la guardamos en Firebase Storage
+            if (fotoInput.files.length > 0) {
+                const archivo = fotoInput.files[0];
+                const nombreArchivo = Date.now() + "_" + archivo.name;
+                const imgRef = storageRef(storage, 'reportes_fotos/' + nombreArchivo);
+                
+                await uploadBytes(imgRef, archivo);
+                fotoUrl = await getDownloadURL(imgRef);
+            }
+
+            // Una vez subida la foto (o si no subió ninguna), guardamos los datos en Realtime Database
+            const reportRef = push(ref(db, 'reportes'));
+            await set(reportRef, { nombre, vehId, vehiculo: vehName, novedad, fecha, fotoUrl });
+            
             alert("¡Novedad enviada exitosamente!");
+            
+            // Limpiar formulario y volver al login
             document.getElementById('chofer-novedad').value = '';
+            document.getElementById('chofer-foto').value = '';
             window.showSection('login-section');
-        });
+
+        } catch (error) {
+            console.error("Error subiendo el reporte:", error);
+            alert("Hubo un error al enviar el reporte. Por favor, intentá de nuevo.");
+        } finally {
+            // Restaurar el botón a la normalidad
+            btnEnviar.innerText = btnTextoOriginal;
+            btnEnviar.disabled = false;
+        }
     };
 
     // --- SISTEMA DE ARCHIVADO ---
@@ -339,7 +382,8 @@
                         set(histRef, { 
                             nombre: r.nombre, 
                             fecha: r.fecha, 
-                            novedad: r.novedad 
+                            novedad: r.novedad,
+                            fotoUrl: r.fotoUrl || "" 
                         }).then(() => {
                             remove(reportRef);
                         });
@@ -385,13 +429,20 @@
             let reportesHTML = '';
             snapshot.forEach((childSnapshot) => {
                 const r = childSnapshot.val();
+                
+                // Mostrar imagen si existe
+                let imgTag = r.fotoUrl ? `<img src="${r.fotoUrl}" style="max-width: 100%; border-radius: 5px; margin-top: 10px;" alt="Foto del reporte">` : '';
+
                 reportesHTML = `
                     <div class="report-card">
                         <strong style="color: #cc0000;">🚨 Alerta de ${r.nombre}</strong>
                         <p style="margin: 5px 0; font-size: 14px; color: #555;">${r.fecha}</p>
                         <p style="margin: 5px 0;"><strong>Auto:</strong> ${r.vehiculo}</p>
                         <p style="margin: 5px 0;"><strong>Novedad:</strong> ${r.novedad}</p>
-                        <button class="manage-btn" onclick="window.resolverReporte('${childSnapshot.key}')">Marcar Resuelto</button>
+                        ${imgTag}
+                        <div style="margin-top: 10px;">
+                            <button class="manage-btn" onclick="window.resolverReporte('${childSnapshot.key}')">Marcar Resuelto</button>
+                        </div>
                     </div>
                 ` + reportesHTML; 
             });
